@@ -11,6 +11,7 @@ import com.javaproblems.governance.repository.ProposalRepository;
 import com.javaproblems.governance.repository.VoteRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -24,20 +25,30 @@ public class ProposalServiceImpl implements ProposalService {
         this.voteRepository = voteRepository;
     }
 
+    private ProposalResponse toResponse(Proposal proposal) {
+        return new ProposalResponse(proposal.getId(), proposal.getTitle(),
+                proposal.getDescription(), proposal.getProposerId(), proposal.getStatus(),
+                proposal.getQuorum(), proposal.getRequiredApprovalRatio(), proposal.getCreatedAt(),
+                proposal.getVotingDeadline());
+    }
+
     @Override
     public ProposalResponse createProposal(ProposalCreateRequest request) {
         Proposal proposal = new Proposal(request.title(), request.description(), request.proposerId(), request.quorum(), request.requiredApprovalRatio());
         Proposal savedProposal = proposalRepository.save(proposal);
-        return new ProposalResponse(savedProposal.getId(), savedProposal.getTitle(),
-                savedProposal.getDescription(), savedProposal.getProposerId(), savedProposal.getStatus(),
-                savedProposal.getQuorum(), savedProposal.getRequiredApprovalRatio(), savedProposal.getCreatedAt(),
-                savedProposal.getVotingDeadline());
+        return toResponse(savedProposal);
     }
 
     @Override
     public List<ProposalResponse> getProposals(ProposalStatus status) {
-        // TODO: return all proposals, optionally filtered by status.
-        throw new UnsupportedOperationException("TODO: implement getProposals");
+        List<ProposalResponse> returnProposal = new ArrayList<>();
+        List<Proposal> proposals;
+        if (status == null) {
+            proposals = proposalRepository.findAll();
+        } else {
+            proposals = proposalRepository.findByStatus(status);
+        }
+        return proposals.stream().map(this::toResponse).toList();
     }
 
     @Override
