@@ -1,5 +1,6 @@
 package com.javaproblems.governance.service;
 
+import com.javaproblems.governance.domain.Proposal;
 import com.javaproblems.governance.domain.ProposalStatus;
 import com.javaproblems.governance.dto.OpenProposalRequest;
 import com.javaproblems.governance.dto.ProposalCreateRequest;
@@ -25,8 +26,12 @@ public class ProposalServiceImpl implements ProposalService {
 
     @Override
     public ProposalResponse createProposal(ProposalCreateRequest request) {
-        // TODO: build a Proposal entity from the request, save it, and map to ProposalResponse.
-        throw new UnsupportedOperationException("TODO: implement createProposal");
+        Proposal proposal = new Proposal(request.title(), request.description(), request.proposerId(), request.quorum(), request.requiredApprovalRatio());
+        Proposal savedProposal = proposalRepository.save(proposal);
+        return new ProposalResponse(savedProposal.getId(), savedProposal.getTitle(),
+                savedProposal.getDescription(), savedProposal.getProposerId(), savedProposal.getStatus(),
+                savedProposal.getQuorum(), savedProposal.getRequiredApprovalRatio(), savedProposal.getCreatedAt(),
+                savedProposal.getVotingDeadline());
     }
 
     @Override
