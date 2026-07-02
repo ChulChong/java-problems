@@ -7,12 +7,15 @@ import com.javaproblems.governance.dto.ProposalCreateRequest;
 import com.javaproblems.governance.dto.ProposalResponse;
 import com.javaproblems.governance.dto.VoteRequest;
 import com.javaproblems.governance.dto.VoteResultResponse;
+import com.javaproblems.governance.exception.InvalidProposalStateException;
+import com.javaproblems.governance.exception.ProposalNotFoundException;
 import com.javaproblems.governance.repository.ProposalRepository;
 import com.javaproblems.governance.repository.VoteRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ProposalServiceImpl implements ProposalService {
@@ -41,7 +44,6 @@ public class ProposalServiceImpl implements ProposalService {
 
     @Override
     public List<ProposalResponse> getProposals(ProposalStatus status) {
-        List<ProposalResponse> returnProposal = new ArrayList<>();
         List<Proposal> proposals;
         if (status == null) {
             proposals = proposalRepository.findAll();
@@ -53,15 +55,22 @@ public class ProposalServiceImpl implements ProposalService {
 
     @Override
     public ProposalResponse getProposal(Long proposalId) {
-        // TODO: fetch a single proposal or throw ProposalNotFoundException.
-        throw new UnsupportedOperationException("TODO: implement getProposal");
+        Optional<Proposal> optionalProposal = proposalRepository.findById(proposalId);
+        Proposal p = optionalProposal.orElseThrow(() -> new ProposalNotFoundException(proposalId));
+        return toResponse(p);
     }
 
     @Override
     public ProposalResponse openProposal(Long proposalId, OpenProposalRequest request) {
-        // TODO: transition DRAFT -> OPEN and set the voting deadline.
-        // Reject if the proposal is not in DRAFT state (InvalidProposalStateException).
-        throw new UnsupportedOperationException("TODO: implement openProposal");
+        Optional<Proposal> optionalProposal = proposalRepository.findById(proposalId);
+        Proposal p = optionalProposal.orElseThrow(() -> new ProposalNotFoundException(proposalId));
+        if (p.getStatus() != ProposalStatus.DRAFT) {
+            throw new InvalidProposalStateException("Status is not Draft");
+        }
+        p.setStatus(ProposalStatus.OPEN);
+        p.setVotingDeadline(request.votingDeadline());
+        Proposal savedProposal = proposalRepository.save(p);
+        return toResponse(savedProposal);
     }
 
     @Override
