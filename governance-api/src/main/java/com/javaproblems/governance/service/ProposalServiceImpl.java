@@ -2,17 +2,20 @@ package com.javaproblems.governance.service;
 
 import com.javaproblems.governance.domain.Proposal;
 import com.javaproblems.governance.domain.ProposalStatus;
+import com.javaproblems.governance.domain.Vote;
 import com.javaproblems.governance.dto.OpenProposalRequest;
 import com.javaproblems.governance.dto.ProposalCreateRequest;
 import com.javaproblems.governance.dto.ProposalResponse;
 import com.javaproblems.governance.dto.VoteRequest;
 import com.javaproblems.governance.dto.VoteResultResponse;
+import com.javaproblems.governance.exception.DuplicateVoteException;
 import com.javaproblems.governance.exception.InvalidProposalStateException;
 import com.javaproblems.governance.exception.ProposalNotFoundException;
 import com.javaproblems.governance.repository.ProposalRepository;
 import com.javaproblems.governance.repository.VoteRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -75,9 +78,18 @@ public class ProposalServiceImpl implements ProposalService {
 
     @Override
     public void castVote(Long proposalId, VoteRequest request) {
-        // TODO: validate proposal is OPEN and the deadline has not passed.
-        // Reject duplicate votes from the same voterId (DuplicateVoteException).
-        throw new UnsupportedOperationException("TODO: implement castVote");
+        Optional<Proposal> optionalProposal = proposalRepository.findById(proposalId);
+        Proposal p = optionalProposal.orElseThrow(() -> new ProposalNotFoundException(proposalId));
+        if (p.getStatus() != ProposalStatus.OPEN) {
+            throw new InvalidProposalStateException("Status is not Open");
+        }
+        if (p.getVotingDeadline().isBefore(LocalDateTime.now())) {
+            throw new InvalidProposalStateException("Voting deadline has passed");
+        }
+        Optional<Vote> optionalVote = voteRepository.findByProposalIdAndVoterId(proposalId, request.voterId());
+        if (optionalVote.isPresent()) throw new DuplicateVoteException(proposalId, request.voterId());
+        Vote v = new Vote(proposalId, request.voterId(), request.choice());
+        voteRepository.save(v);
     }
 
     @Override
